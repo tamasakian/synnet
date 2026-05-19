@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import re
 from pathlib import Path
 
 
@@ -15,10 +16,21 @@ def collect_collinearity_files(paths: list[Path]) -> list[Path]:
     return sorted(dict.fromkeys(files))
 
 
-def read_edges(path: Path, gene_to_subgenome: dict[str, str]) -> set[tuple[str, str]]:
-    edges: set[tuple[str, str]] = set()
+ALIGNMENT_RE = re.compile(r"^## Alignment\s+(\d+):\s+score=([^\s]+)")
+
+
+def read_edges(path: Path, gene_to_subgenome: dict[str, str]) -> dict[tuple[str, str], tuple[float, str]]:
+    edges: dict[tuple[str, str], tuple[float, str]] = {}
+    current_alignment_id = ""
+    current_score = 0.0
     with path.open() as handle:
         for line in handle:
+            if line.startswith("## Alignment"):
+                match = ALIGNMENT_RE.match(line)
+                if match:
+                    current_alignment_id = match.group(1)
+                    current_score = float(match.group(2))
+                continue
             if not line.startswith(" "):
                 continue
             cols = line.strip().split()
@@ -29,5 +41,8 @@ def read_edges(path: Path, gene_to_subgenome: dict[str, str]) -> set[tuple[str, 
                 continue
             if gene_a == gene_b:
                 continue
-            edges.add(tuple(sorted((gene_a, gene_b))))
+            edge = tuple(sorted((gene_a, gene_b)))
+            previous_score = edges.get(edge, (0.0, ""))[0]
+            if current_score >= previous_score:
+                edges[edge] = (current_score, current_alignment_id)
     return edges

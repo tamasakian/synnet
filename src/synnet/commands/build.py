@@ -71,17 +71,19 @@ def run_build(args: argparse.Namespace) -> None:
     if not collinearity_files:
         raise SystemExit("no .collinearity files found")
 
-    edges: set[tuple[str, str]] = set()
+    edges: dict[tuple[str, str], tuple[float, str]] = {}
     for path in collinearity_files:
-        edges.update(read_edges(path, gene_to_subgenome))
+        for edge, score in read_edges(path, gene_to_subgenome).items():
+            if score[0] >= edges.get(edge, (0.0, ""))[0]:
+                edges[edge] = score
 
-    rows, _metrics = build_ortholog_rows(edges, gene_to_subgenome, subgenomes)
+    rows, metrics = build_ortholog_rows(edges, gene_to_subgenome, subgenomes)
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
     network_path = args.output_dir / "syntenic_orthologs_1to1_network.tsv"
     summary_path = args.output_dir / "summary.txt"
     write_network_tsv(network_path, rows, subgenomes)
-    write_summary_txt(summary_path, rows, len(subgenomes))
+    write_summary_txt(summary_path, rows, len(subgenomes), metrics)
 
     print(network_path)
     print(summary_path)
