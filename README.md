@@ -72,13 +72,22 @@ A1	A2	B1	B2	edge_count	node_count	supported_edges	edge_alignment_score_sum	suppo
 ```
 
 Each row is one 1:1 syntenic ortholog network. Missing OGUs are written as empty
-cells. `edge_count` is the number of supported OGU-pair edges in the network, so
-with four OGUs the value ranges from 1 to 6. `edge_alignment_score_sum` is the
+cells.
+
+`edge_count` is the number of supported OGU-pair edges in the network, so
+with four OGUs the value ranges from 1 to 6.
+
+`edge_alignment_score_sum` is the
 sum of the selected supporting MCScanX alignment scores.
+
+
 `supported_edge_alignment_ids` stores the MCScanX alignment ID used for each
-supported OGU pair, such as `A1-B1:1`. `selection_status` is `direct` for
-already 1:1 components, `resolved` for conflict components resolved to a fully
-connected subset, or `resolved_sparse` for conflict components resolved to a
+supported OGU pair, such as `A1-B1:1`.
+
+`selection_status` is
+`direct` for already 1:1 components,
+`resolved` for conflict components resolved to a fully connected subset,
+or `resolved_sparse` for conflict components resolved to a
 connected but not fully connected subset.
 
 `summary.txt` reports total row counts by node completeness and edge count.
