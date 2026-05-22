@@ -19,7 +19,7 @@ def collect_collinearity_files(paths: list[Path]) -> list[Path]:
 ALIGNMENT_RE = re.compile(r"^## Alignment\s+(\d+):\s+score=([^\s]+)")
 
 
-def read_edges(path: Path, gene_to_subgenome: dict[str, str]) -> dict[tuple[str, str], tuple[float, str]]:
+def read_edges(path: Path, gene_to_ogu: dict[str, str]) -> dict[tuple[str, str], tuple[float, str]]:
     edges: dict[tuple[str, str], tuple[float, str]] = {}
     current_alignment_id = ""
     current_score = 0.0
@@ -37,7 +37,7 @@ def read_edges(path: Path, gene_to_subgenome: dict[str, str]) -> dict[tuple[str,
             if len(cols) < 4 or not cols[0].endswith(":"):
                 continue
             gene_a, gene_b = cols[1], cols[2]
-            if gene_a not in gene_to_subgenome or gene_b not in gene_to_subgenome:
+            if gene_a not in gene_to_ogu or gene_b not in gene_to_ogu:
                 continue
             if gene_a == gene_b:
                 continue
