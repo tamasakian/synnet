@@ -2,6 +2,17 @@
 
 from collections import defaultdict
 from itertools import combinations, product
+from typing import DefaultDict
+
+
+def normalize_gene_id(gene: str) -> str:
+    return str(gene).strip()
+
+
+def canonical_edge(left: str, right: str) -> tuple[str, str]:
+    left = normalize_gene_id(left)
+    right = normalize_gene_id(right)
+    return tuple(sorted((left, right)))
 
 
 class DisjointSet:
@@ -9,15 +20,19 @@ class DisjointSet:
         self.parent: dict[str, str] = {}
 
     def add(self, item: str) -> None:
+        item = normalize_gene_id(item)
         self.parent.setdefault(item, item)
 
     def find(self, item: str) -> str:
+        item = normalize_gene_id(item)
         parent = self.parent[item]
         if parent != item:
             self.parent[item] = self.find(parent)
         return self.parent[item]
 
     def union(self, left: str, right: str) -> None:
+        left = normalize_gene_id(left)
+        right = normalize_gene_id(right)
         self.add(left)
         self.add(right)
         root_left = self.find(left)
@@ -29,12 +44,21 @@ class DisjointSet:
 def build_components(edges: set[tuple[str, str]]) -> dict[str, list[str]]:
     dsu = DisjointSet()
     for left, right in edges:
-        dsu.union(left, right)
+        edge = canonical_edge(left, right)
+        dsu.union(*edge)
 
-    components: dict[str, list[str]] = defaultdict(list)
+    components: DefaultDict[str, list[str]] = defaultdict(list)
     for gene in dsu.parent:
         components[dsu.find(gene)].append(gene)
-    return components
+    return dict(components)
+
+
+def validate_edges(edges: dict[tuple[str, str], tuple[float, str]]) -> dict[str, int]:
+    noncanonical = 0
+    for edge in edges:
+        if edge != canonical_edge(*edge):
+            noncanonical += 1
+    return {"noncanonical_edges": noncanonical}
 
 
 def build_ortholog_rows(
@@ -42,15 +66,21 @@ def build_ortholog_rows(
     gene_to_ogu: dict[str, str],
     ogus: list[str],
 ) -> tuple[list[dict[str, str | int | float]], dict[str, int]]:
-    edge_lookup = set(edges)
+    validation_metrics = validate_edges(edges)
+    edge_lookup = {canonical_edge(*edge) for edge in edges}
     components = build_components(edge_lookup)
     resolved_multi_ogu = 0
     excluded_too_sparse = 0
+    unresolved_components = 0
     rows: list[dict[str, str | int | float]] = []
 
     for genes in components.values():
-        by_ogu: dict[str, list[str]] = defaultdict(list)
+        by_ogu: DefaultDict[str, list[str]] = defaultdict(list)
         for gene in genes:
+            gene = normalize_gene_id(gene)
+            if gene not in gene_to_ogu:
+                unresolved_components += 1
+                continue
             by_ogu[gene_to_ogu[gene]].append(gene)
 
         present = [ogu for ogu in ogus if ogu in by_ogu]
@@ -64,6 +94,7 @@ def build_ortholog_rows(
             ogus=ogus,
         )
         if not selected:
+            unresolved_components += 1
             continue
         if selection_status.startswith("resolved"):
             resolved_multi_ogu += 1
@@ -76,7 +107,7 @@ def build_ortholog_rows(
         for ogu_a, ogu_b in combinations(present, 2):
             gene_a = ordered_genes[ogu_a]
             gene_b = ordered_genes[ogu_b]
-            edge = tuple(sorted((gene_a, gene_b)))
+            edge = canonical_edge(gene_a, gene_b)
             if edge in edge_lookup:
                 supported_edges.append(f"{ogu_a}-{ogu_b}")
                 alignment_score += edges[edge][0]
@@ -110,6 +141,8 @@ def build_ortholog_rows(
         "components": len(components),
         "resolved_multi_gene_same_ogu_components": resolved_multi_ogu,
         "excluded_too_sparse_components": excluded_too_sparse,
+        "unresolved_components": unresolved_components,
+        **validation_metrics,
     }
     return rows, metrics
 
@@ -136,7 +169,7 @@ def select_best_subset(
                 supported_edges = []
                 alignment_score = 0.0
                 for ogu_a, ogu_b in combinations(chosen_ogus, 2):
-                    edge = tuple(sorted((gene_by_ogu[ogu_a], gene_by_ogu[ogu_b])))
+                    edge = canonical_edge(gene_by_ogu[ogu_a], gene_by_ogu[ogu_b])
                     if edge in edge_evidence:
                         supported_edges.append(edge)
                         alignment_score += edge_evidence[edge][0]

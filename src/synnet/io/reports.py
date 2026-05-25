@@ -40,3 +40,5 @@ def write_summary_txt(
         handle.write("\n")
         handle.write(f"resolved conflict components: {metrics.get('resolved_multi_gene_same_ogu_components', 0)}\n")
         handle.write(f"excluded sparse components: {metrics.get('excluded_too_sparse_components', 0)}\n")
+        handle.write(f"unresolved components: {metrics.get('unresolved_components', 0)}\n")
+        handle.write(f"noncanonical edges: {metrics.get('noncanonical_edges', 0)}\n")

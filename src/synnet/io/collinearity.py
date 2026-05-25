@@ -3,6 +3,8 @@
 import re
 from pathlib import Path
 
+from synnet.core.network import canonical_edge, normalize_gene_id
+
 
 def collect_collinearity_files(paths: list[Path]) -> list[Path]:
     files: list[Path] = []
@@ -36,12 +38,13 @@ def read_edges(path: Path, gene_to_ogu: dict[str, str]) -> dict[tuple[str, str],
             cols = line.strip().split()
             if len(cols) < 4 or not cols[0].endswith(":"):
                 continue
-            gene_a, gene_b = cols[1], cols[2]
+            gene_a = normalize_gene_id(cols[1])
+            gene_b = normalize_gene_id(cols[2])
             if gene_a not in gene_to_ogu or gene_b not in gene_to_ogu:
                 continue
             if gene_a == gene_b:
                 continue
-            edge = tuple(sorted((gene_a, gene_b)))
+            edge = canonical_edge(gene_a, gene_b)
             previous_score = edges.get(edge, (0.0, ""))[0]
             if current_score >= previous_score:
                 edges[edge] = (current_score, current_alignment_id)

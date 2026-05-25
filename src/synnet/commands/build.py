@@ -3,7 +3,7 @@
 import argparse
 from pathlib import Path
 
-from synnet.core.network import build_ortholog_rows
+from synnet.core.network import build_ortholog_rows, canonical_edge, normalize_gene_id
 from synnet.io.bed4 import read_gene_ids
 from synnet.io.collinearity import collect_collinearity_files, read_edges
 from synnet.io.reports import write_network_tsv, write_summary_txt
@@ -65,7 +65,7 @@ def run_build(args: argparse.Namespace) -> None:
     gene_to_ogu: dict[str, str] = {}
     for ogu in ogus:
         for gene in read_gene_ids(gff_paths[ogu]):
-            gene_to_ogu[gene] = ogu
+            gene_to_ogu[normalize_gene_id(gene)] = ogu
 
     collinearity_files = collect_collinearity_files(args.inputs)
     if not collinearity_files:
@@ -74,6 +74,7 @@ def run_build(args: argparse.Namespace) -> None:
     edges: dict[tuple[str, str], tuple[float, str]] = {}
     for path in collinearity_files:
         for edge, score in read_edges(path, gene_to_ogu).items():
+            edge = canonical_edge(*edge)
             if score[0] >= edges.get(edge, (0.0, ""))[0]:
                 edges[edge] = score
 
