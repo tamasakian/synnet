@@ -38,7 +38,10 @@ def write_summary_txt(
         for edge_count in range(1, max_edges + 1):
             handle.write(f"edge_count {edge_count}: {scores[edge_count]}\n")
         handle.write("\n")
-        handle.write(f"resolved conflict components: {metrics.get('resolved_multi_gene_same_ogu_components', 0)}\n")
+        handle.write(f"input edges: {metrics.get('input_edges', 0)}\n")
+        handle.write(f"matched edges: {metrics.get('matched_edges', 0)}\n")
+        handle.write(f"pruned conflict edges: {metrics.get('pruned_conflict_edges', 0)}\n")
+        handle.write(f"excluded multi-OGU components: {metrics.get('excluded_multi_gene_same_ogu_components', 0)}\n")
         handle.write(f"excluded sparse components: {metrics.get('excluded_too_sparse_components', 0)}\n")
         handle.write(f"unresolved components: {metrics.get('unresolved_components', 0)}\n")
         handle.write(f"noncanonical edges: {metrics.get('noncanonical_edges', 0)}\n")

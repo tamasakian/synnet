@@ -4,12 +4,14 @@
 from MCScanX `.collinearity` files.
 
 It treats every collinear gene pair as a network edge,
-joins edges across any number of input collinearity files,
-and reports components where each Operational Genomic Unit (OGU) contributes at
-most one gene.
+then applies a greedy maximum-weight matching independently for each OGU pair.
+The matched edges are used to build the final graph, and connected components
+are reported when each Operational Genomic Unit (OGU) contributes at most one
+gene.
+If matched edges still create a connected component with multiple genes from the
+same OGU, `synnet` removes the weakest edge in that conflicting component and
+rebuilds components until the graph satisfies the one-node-per-OGU constraint.
 
-When a connected component contains multiple genes from the same OGU,
-`synnet` resolves the conflict by selecting the best 1:1 subset.
 It reads the MCScanX alignment header, for example:
 
 ```text
@@ -18,11 +20,13 @@ It reads the MCScanX alignment header, for example:
 
 and uses the alignment `score` as the weight for every gene-pair edge in that
 alignment block. The alignment ID is retained for each supported OGU pair.
-Candidate subsets are prioritized by:
+Edges are selected by:
 
-1. larger node count
-2. larger edge count
-3. larger summed alignment score
+1. OGU pair
+2. descending alignment score
+3. no reused node within the same OGU pair
+
+Remaining component conflicts are pruned by ascending alignment score.
 
 ## Input
 
@@ -84,10 +88,6 @@ sum of the selected supporting MCScanX alignment scores.
 `supported_edge_alignment_ids` stores the MCScanX alignment ID used for each
 supported OGU pair, such as `A1-B1:1`.
 
-`selection_status` is
-`direct` for already 1:1 components,
-`resolved` for conflict components resolved to a fully connected subset,
-or `resolved_sparse` for conflict components resolved to a
-connected but not fully connected subset.
+`selection_status` is `matched` for rows built from the matched edge graph.
 
 `summary.txt` reports total row counts by node completeness and edge count.
